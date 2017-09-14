@@ -1,0 +1,41 @@
+{
+  "name": "amp-html-parser",
+  "version": "0.0.1",
+  "description": "Convert plain HTML into AMP-HTML",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha $(find test -name '*.test.js')",
+    "watch": "mocha --watch $(find test -name '*_spec.js')",
+    "coverage": "istanbul cover ./node_modules/.bin/_mocha -- $(find test -name '*.test.js')"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AileenCGN/amp-html-converter"
+  },
+  "keywords": [
+    "amp",
+    "html"
+  ],
+  "author": "Aileen Nowak <aileencgn@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AileenCGN/amp-html-converter/issues"
+  },
+  "devDependencies": {
+    "istanbul": "0.4.5",
+    "mocha": "3.5.3",
+    "nock": "9.0.14",
+    "rewire": "2.5.2",
+    "should": "13.0.1",
+    "sinon": "3.2.1"
+  },
+  "dependencies": {
+    "bluebird": "3.5.0",
+    "got": "7.1.0",
+    "htmlparser2": "3.9.2",
+    "image-size": "^0.6.1",
+    "lodash": "4.17.4",
+    "url": "0.11.0",
+    "validator": "8.2.0"
+  }
+}
