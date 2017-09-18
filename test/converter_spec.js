@@ -30,34 +30,37 @@ describe('Converter', function () {
     });
 
     it('[success] transforms plain HTML into AMP-HTML when incl. not convertable tags', function (done) {
-        var html = '<p>Test</p><div><h1>Heading</h1></div>' +
+        var html = '<div><p>Test</p><div><h1>Heading</h1></div>' +
                    '<img src="http://example.com/content/images/small_img.jpg">' +
-                   '<img><//img><p>some text here</p>';
+                   '<iframe src="https://www.youtube.com/embed/HMQkV5cTuoY" height="400"></iframe></div>';
+
+        imageCachStub.returns(Promise.resolve({message: 'Image not found'}));
+        converter.__set__('getCachedImageSize', imageCachStub);
 
         converter(html).then(function (result) {
             should.exist(result);
-            result.should.match(/<p>Test<\/p><div><h1>Heading<\/h1><\/div>/);
-            result.should.match(/<amp-img src="http:\/\/example.com\/content\/images\/small_img.jpg" width="600" height="400" layout="responsive"><\/amp-img>/);
-            result.should.match(/<img><p>some text here<\/p>/);
+            result.should.match(/<div><p>Test<\/p><div><h1>Heading<\/h1><\/div>/);
+            result.should.match(/<img src="http:\/\/example.com\/content\/images\/small_img.jpg">/);
+            result.should.match(/<amp-iframe src="https:\/\/www.youtube.com\/embed\/HMQkV5cTuoY" height="400" width="600" sandbox="allow-scripts allow-same-origin" layout="responsive"><\/amp-iframe><\/div>/);
             done();
         }).catch(done);
     });
 
     it('[success] transforms children nodes into AMP-HTML', function (done) {
-        var html = '<div class="some-wrapper-class"><p><img src="http://website.com/content/images/2017/09/image1.jpg" alt="image1.jpg"></p>' +
+        var html = '<div><div class="some-wrapper-class"><p><img src="http://website.com/content/images/2017/09/image1.jpg" alt="image1.jpg"></p>' +
                    '<p><img src="http://website.com/content/images/2017/09/blog-cover.jpg" alt="blog-cover"></p>' +
                    '<p><img src="https://unsplash.com/some-other-image.jpg" alt="Furry cat sits on outside waiting to pounce"><br>' +
-                   '<small>Photo by <a href="https://unsplash.com/">Marnhe du Plooy</a> / <a href="https://unsplash.com">Unsplash</a></small></p></div>';
+                   '<small>Photo by <a href="https://unsplash.com/">Marnhe du Plooy</a> / <a href="https://unsplash.com">Unsplash</a></small></p></div></div>';
 
         imageCachStub.returns(Promise.resolve({width: 600, height: 300, type: 'jpg'}));
         converter.__set__('getCachedImageSize', imageCachStub);
 
         converter(html).then(function (result) {
             should.exist(result);
-            result.should.match(/<div class="some-wrapper-class"><p><amp-img src="http:\/\/website.com\/content\/images\/2017\/09\/image1.jpg" alt="image1.jpg" width="600" height="300" layout="responsive"><\/amp-img><\/p>/);
+            result.should.match(/<div><div class="some-wrapper-class"><p><amp-img src="http:\/\/website.com\/content\/images\/2017\/09\/image1.jpg" alt="image1.jpg" width="600" height="300" layout="responsive"><\/amp-img><\/p>/);
             result.should.match(/<p><amp-img src="http:\/\/website.com\/content\/images\/2017\/09\/blog-cover.jpg" alt="blog-cover" width="600" height="300" layout="responsive"><\/amp-img><\/p>/);
             result.should.match(/<p><amp-img src="https:\/\/unsplash.com\/some-other-image.jpg" alt="Furry cat sits on outside waiting to pounce" width="600" height="300" layout="responsive"><\/amp-img><br>/);
-            result.should.match(/<small>Photo by <a href="https:\/\/unsplash.com\/">Marnhe du Plooy<\/a> \/ <a href="https:\/\/unsplash.com">Unsplash<\/a><\/small><\/p><\/div>/);
+            result.should.match(/<small>Photo by <a href="https:\/\/unsplash.com\/">Marnhe du Plooy<\/a> \/ <a href="https:\/\/unsplash.com">Unsplash<\/a><\/small><\/p><\/div><\/div>/);
             done();
         }).catch(done);
     });
@@ -125,7 +128,7 @@ describe('Converter', function () {
             }).catch(done);
         });
 
-        it('[success] can handle <img> tag without src and does not transform it', function (done) {
+        it('[failure] can handle <img> tag without src and does not transform it', function (done) {
             var html = '<img><//img><p>some text here</p>';
 
             converter(html).then(function (result) {
@@ -135,12 +138,28 @@ describe('Converter', function () {
             }).catch(done);
         });
 
-        it('[success] can handle <img> tag image without extension and falls back to default dimensions', function (done) {
+        it('[failure] can handle <img> tag image without extension does not transform it', function (done) {
             var html = '<img src="http://example.com/content/images/large_img">';
+
+            imageCachStub.returns(Promise.resolve({message: 'Image not found'}));
+            converter.__set__('getCachedImageSize', imageCachStub);
 
             converter(html).then(function (result) {
                 should.exist(result);
-                result.should.match(/<amp-img src="http:\/\/example.com\/content\/images\/large_img" width="800" height="600" layout="responsive"><\/amp-img>/);
+                result.should.match(/<img src="http:\/\/example.com\/content\/images\/large_img">/);
+                done();
+            }).catch(done);
+        });
+
+        it('[failure] can handle <img> that causes time out error and uses fallback image sizes', function (done) {
+            var html = '<img src="http://example.com/content/images/large_img">';
+
+            imageCachStub.returns(Promise.resolve({message: 'Request timed out'}));
+            converter.__set__('getCachedImageSize', imageCachStub);
+
+            converter(html).then(function (result) {
+                should.exist(result);
+                result.should.match(/<img src="http:\/\/example.com\/content\/images\/large_img">/);
                 done();
             }).catch(done);
         });
@@ -209,7 +228,7 @@ describe('Converter', function () {
             }).catch(done);
         });
 
-        it('transforms <audio> with a <track> tag to <amp-audio>', function (done) {
+        it('[success] transforms <audio> with a <track> tag to <amp-audio>', function (done) {
             var html = '<audio src="foo.ogg"><track kind="captions" src="https://foo.en.vtt" srclang="en" label="English"><track kind="captions" src="https://foo.sv.vtt" srclang="sv" label="Svenska"></audio>';
 
             converter(html).then(function (result) {
@@ -218,11 +237,5 @@ describe('Converter', function () {
                 done();
             }).catch(done);
         });
-    });
-
-    describe('errors', function () {
-        it('can handle request errors');
-        it('can handle errors of image-size module');
-        it('can handle timeout errors');
     });
 });

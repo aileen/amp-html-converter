@@ -193,7 +193,7 @@ describe('Image Size', function () {
             });
 
         sizeOfStub = sandbox.stub();
-        sizeOfStub.throws({error: 'image-size could not find dimensions'});
+        sizeOfStub.throws('image-size could not find dimensions');
         getImageSize.__set__('sizeOf', sizeOfStub);
 
         result = getImageSize(url)
@@ -210,6 +210,17 @@ describe('Image Size', function () {
         requestMock = nock('https://notarealwebsite.com')
             .get('/images/notapicture.jpg')
             .reply(404, {message: 'something awful happened', code: 'AWFUL_ERROR'});
+
+        result = getImageSize(url)
+            .catch(function (err) {
+                requestMock.isDone().should.be.true();
+                should.exist(err);
+                done();
+            });
+    });
+
+    it('[failure] returns error when URL is invalid', function (done) {
+        var url = 'not-a-website';
 
         result = getImageSize(url)
             .catch(function (err) {
